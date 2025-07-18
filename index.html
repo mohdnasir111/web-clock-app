@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clock App</title>
+    <style>
+        body {
+            font-family: -apple-system, Arial, sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .tab.active {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .tab:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .section {
+            display: none;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 20px;
+            border-radius: 15px;
+            width: 300px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+        .section.active {
+            display: block;
+        }
+        .time-display {
+            font-size: 3em;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .button {
+            padding: 10px 20px;
+            margin: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            cursor: pointer;
+            font-size: 1.2em;
+            box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.2), -5px -5px 10px rgba(255, 255, 255, 0.1);
+            transition: all 0.3s;
+        }
+        .button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        input[type="number"], select {
+            padding: 10px;
+            font-size: 1.2em;
+            border-radius: 10px;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            margin: 5px;
+            width: 60px;
+        }
+        select#alarm-period {
+            width: 80px;
+        }
+        select#alarm-sound {
+            width: 100px;
+            background: rgba(255, 255, 255, 0.2);
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            padding-right: 30px;
+            background-image: url('data:image/svg+xml;utf8,<svg fill="white" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+        }
+        select#alarm-sound:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.3);
+        }
+        select#alarm-sound option {
+            background: #2a5298;
+            color: #fff;
+            padding: 10px;
+            font-size: 1.2em;
+        }
+        select#alarm-sound option:checked {
+            font-weight: bold;
+        }
+        #alarm-list {
+            margin-top: 20px;
+            text-align: left;
+        }
+        .alarm-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Clock App</h1>
+    <div class="tabs">
+        <div class="tab active" data-section="stopwatch">Stopwatch</div>
+        <div class="tab" data-section="alarm">Alarm</div>
+        <div class="tab" data-section="timer">Timer</div>
+    </div>
+    <div id="stopwatch" class="section active">
+        <div class="time-display" id="stopwatch-display">00:00:00</div>
+        <button class="button" id="start-stopwatch">Start</button>
+        <button class="button" id="reset-stopwatch">Reset</button>
+    </div>
+    <div id="alarm" class="section">
+        <input type="number" id="alarm-hours" placeholder="HH" min="1" max="12">
+        <input type="number" id="alarm-minutes" placeholder="MM" min="0" max="59">
+        <select id="alarm-period">
+            <option value="AM">AM</option>
+            <option value="PM">PM</option>
+        </select>
+        <select id="alarm-sound">
+            <option value="beep.mp3">Beep</option>
+            <option value="chime.mp3">Chime</option>
+            <option value="bell.mp3">Bell</option>
+            <option value="siren.mp3">Siren</option>
+            <option value="tone.mp3">Tone</option>
+            <option value="alert.mp3">Alert</option>
+        </select>
+        <button class="button" id="set-alarm">Set Alarm</button>
+        <button class="button" id="test-sound">Test Sound</button>
+        <div id="alarm-list"></div>
+    </div>
+    <div id="timer" class="section">
+        <input type="number" id="timer-minutes" placeholder="Minutes" min="1">
+        <button class="button" id="start-timer">Start Timer</button>
+        <div class="time-display" id="timer-display">00:00</div>
+    </div>
+    <script>
+        // Sound files (local paths in sounds folder)
+        const soundFiles = {
+            'beep.mp3': './sounds/beep.mp3',
+            'chime.mp3': './sounds/chime.mp3',
+            'bell.mp3': './sounds/bell.mp3',
+            'siren.mp3': './sounds/siren.mp3',
+            'tone.mp3': './sounds/tone.mp3',
+            'alert.mp3': './sounds/alert.mp3',
+            'tick.mp3': './sounds/tick.mp3'
+        };
+
+        // Preload audio to handle autoplay restrictions
+        let audioContextInitialized = false;
+        function initializeAudio() {
+            if (!audioContextInitialized) {
+                const audio = new Audio();
+                audio.play().catch(() => {}); // Silent play to initialize
+                audioContextInitialized = true;
+                console.log('Audio context initialized');
+            }
+        }
+
+        // Tab Switching
+        const tabs = document.querySelectorAll('.tab');
+        const sections = document.querySelectorAll('.section');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                sections.forEach(s => s.classList.remove('active'));
+                tab.classList.add('active');
+                const section = document.getElementById(tab.dataset.section);
+                if (section) {
+                    section.classList.add('active');
+                    console.log(`Switched to ${tab.dataset.section} tab`);
+                } else {
+                    console.error(`Section ${tab.dataset.section} not found`);
+                }
+            });
+        });
+
+        // Stopwatch
+        let stopwatchInterval = null;
+        let stopwatchSeconds = 0;
+        let tickAudio = null;
+        const stopwatchDisplay = document.getElementById('stopwatch-display');
+        const startStopwatch = document.getElementById('start-stopwatch');
+        const resetStopwatch = document.getElementById('reset-stopwatch');
+
+        function updateStopwatch() {
+            stopwatchSeconds++;
+            const hours = Math.floor(stopwatchSeconds / 3600);
+            const minutes = Math.floor((stopwatchSeconds % 3600) / 60);
+            const seconds = stopwatchSeconds % 60;
+            stopwatchDisplay.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            if (tickAudio) {
+                tickAudio.currentTime = 0;
+                tickAudio.play().catch(err => {
+                    console.error('Tick audio play failed:', err);
+                    alert('Stopwatch tick sound failed. Ensure tick.mp3 is in the sounds folder and served correctly.');
+                });
+            }
+        }
+
+        startStopwatch.addEventListener('click', () => {
+            initializeAudio();
+            if (stopwatchInterval) {
+                clearInterval(stopwatchInterval);
+                stopwatchInterval = null;
+                if (tickAudio) tickAudio.pause();
+                startStopwatch.textContent = 'Start';
+                console.log('Stopwatch stopped');
+            } else {
+                stopwatchInterval = setInterval(updateStopwatch, 1000);
+                tickAudio = new Audio(soundFiles['tick.mp3']);
+                tickAudio.loop = false;
+                tickAudio.play().catch(err => {
+                    console.error('Tick audio play failed:', err);
+                    alert('Stopwatch tick sound failed. Ensure tick.mp3 is in the sounds folder.');
+                });
+                startStopwatch.textContent = 'Stop';
+                console.log('Stopwatch started');
+            }
+        });
+
+        resetStopwatch.addEventListener('click', () => {
+            clearInterval(stopwatchInterval);
+            stopwatchInterval = null;
+            if (tickAudio) tickAudio.pause();
+            stopwatchSeconds = 0;
+            stopwatchDisplay.textContent = '00:00:00';
+            startStopwatch.textContent = 'Start';
+            console.log('Stopwatch reset');
+        });
+
+        // Alarm
+        const alarmHoursInput = document.getElementById('alarm-hours');
+        const alarmMinutesInput = document.getElementById('alarm-minutes');
+        const alarmPeriodSelect = document.getElementById('alarm-period');
+        const alarmSoundSelect = document.getElementById('alarm-sound');
+        const setAlarm = document.getElementById('set-alarm');
+        const testSound = document.getElementById('test-sound');
+        const alarmList = document.getElementById('alarm-list');
+        let alarms = [];
+
+        setAlarm.addEventListener('click', () => {
+            initializeAudio();
+            const hours = parseInt(alarmHoursInput.value);
+            const minutes = parseInt(alarmMinutesInput.value);
+            const period = alarmPeriodSelect.value;
+            const sound = alarmSoundSelect.value;
+
+            if (!hours || hours < 1 || hours > 12 || isNaN(minutes) || minutes < 0 || minutes > 59) {
+                console.error('Invalid time input');
+                alert('Please enter a valid time (Hours: 1-12, Minutes: 0-59)');
+                return;
+            }
+
+            const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} ${period}`;
+            const alarmId = Date.now();
+            alarms.push({ id: alarmId, hours, minutes, period, sound, formattedTime });
+            const alarmItem = document.createElement('div');
+            alarmItem.className = 'alarm-item';
+            alarmItem.innerHTML = `${formattedTime} - ${sound.split('.')[0]} <button class="button" onclick="deleteAlarm(${alarmId})">Delete</button>`;
+            alarmList.appendChild(alarmItem);
+            console.log(`Alarm set: ${formattedTime} with sound ${sound}`);
+            alarmHoursInput.value = '';
+            alarmMinutesInput.value = '';
+        });
+
+        testSound.addEventListener('click', () => {
+            initializeAudio();
+            const sound = alarmSoundSelect.value;
+            const audio = new Audio(soundFiles[sound]);
+            audio.play().then(() => {
+                console.log(`Test sound played: ${sound}`);
+            }).catch(err => {
+                console.error('Test sound play failed:', err);
+                alert('Test sound failed to play. Ensure the sound file exists in the sounds folder and is served correctly.');
+            });
+        });
+
+        setInterval(() => {
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const period = hours >= 12 ? 'PM' : 'AM';
+            const hours12 = hours % 12 || 12;
+
+            alarms.forEach(alarm => {
+                if (alarm.hours === hours12 && alarm.minutes === minutes && alarm.period === period) {
+                    console.log(`Alarm triggered: ${alarm.formattedTime} with sound ${alarm.sound}`);
+                    const audio = new Audio(soundFiles[alarm.sound]);
+                    audio.play().then(() => {
+                        console.log('Alarm audio played successfully');
+                    }).catch(err => {
+                        console.error('Alarm audio play failed:', err);
+                        setTimeout(() => {
+                            audio.play().catch(() => {
+                                alert('Alarm triggered, but sound failed to play. Ensure the sound file exists in the sounds folder and is served correctly.');
+                            });
+                        }, 100);
+                    });
+                    alert(`Alarm at ${alarm.formattedTime}!`);
+                    alarms = alarms.filter(a => a.id !== alarm.id);
+                    alarmList.innerHTML = '';
+                    alarms.forEach(a => {
+                        const item = document.createElement('div');
+                        item.className = 'alarm-item';
+                        item.innerHTML = `${a.formattedTime} - ${a.sound.split('.')[0]} <button class="button" onclick="deleteAlarm(${a.id})">Delete</button>`;
+                        alarmList.appendChild(item);
+                    });
+                }
+            });
+        }, 1000);
+
+        window.deleteAlarm = function(id) {
+            alarms = alarms.filter(alarm => alarm.id !== id);
+            alarmList.innerHTML = '';
+            alarms.forEach(alarm => {
+                const item = document.createElement('div');
+                item.className = 'alarm-item';
+                item.innerHTML = `${alarm.formattedTime} - ${alarm.sound.split('.')[0]} <button class="button" onclick="deleteAlarm(${alarm.id})">Delete</button>`;
+                alarmList.appendChild(item);
+            });
+            console.log(`Alarm deleted: ID ${id}`);
+        };
+
+        // Timer
+        const timerMinutes = document.getElementById('timer-minutes');
+        const startTimer = document.getElementById('start-timer');
+        const timerDisplay = document.getElementById('timer-display');
+        let timerInterval = null;
+        let timerSeconds = 0;
+        let timerTickAudio = null;
+
+        function updateTimer() {
+            if (timerSeconds <= 0) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                if (timerTickAudio) timerTickAudio.pause();
+                alert('Timer finished!');
+                timerDisplay.textContent = '00:00';
+                startTimer.textContent = 'Start';
+                console.log('Timer finished');
+                return;
+            }
+            timerSeconds--;
+            const minutes = Math.floor(timerSeconds / 60);
+            const seconds = timerSeconds % 60;
+            timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            if (timerTickAudio) {
+                timerTickAudio.currentTime = 0;
+                timerTickAudio.play().catch(err => {
+                    console.error('Timer tick audio play failed:', err);
+                    alert('Timer tick sound failed. Ensure tick.mp3 is in the sounds folder.');
+                });
+            }
+        }
+
+        startTimer.addEventListener('click', () => {
+            initializeAudio();
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                if (timerTickAudio) timerTickAudio.pause();
+                startTimer.textContent = 'Start';
+                console.log('Timer stopped');
+                return;
+            }
+
+            const minutes = parseInt(timerMinutes.value);
+            if (!minutes || minutes <= 0) {
+                console.error('Invalid timer minutes');
+                alert('Please enter a valid number of minutes');
+                return;
+            }
+
+            timerSeconds = minutes * 60;
+            timerInterval = setInterval(updateTimer, 1000);
+            timerTickAudio = new Audio(soundFiles['tick.mp3']);
+            timerTickAudio.loop = false;
+            timerTickAudio.play().catch(err => {
+                console.error('Timer tick audio play failed:', err);
+                alert('Timer tick sound failed. Ensure tick.mp3 is in the sounds folder.');
+            });
+            startTimer.textContent = 'Stop';
+            console.log('Timer started');
+        });
+    </script>
+</body>
+</html>
